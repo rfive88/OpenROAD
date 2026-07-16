@@ -5,9 +5,10 @@ It replaces the separate `mpl` (Hier-RTLMP macro placer) and `gpl`
 (RePlAce global placer) passes with a single co-optimised flow in which
 macro positions and standard-cell positions are solved together.
 
-> **Status:** skeleton — only `hello_ipl` is implemented.
+> **Status:** S1a — cluster data model implemented (Metrics, Cluster,
+> PhysicalHierarchy). No DB traversal or placement yet.
 > Functional placement passes are being developed in staged briefs
-> under `src/ipl/doc/`.
+> under `src/ipl/docs/briefs/`.
 
 ## Algorithm overview
 
@@ -19,6 +20,20 @@ macro positions and standard-cell positions are solved together.
 | Routability refinement | RePlAce constraint-oriented local smoothing | TCAD 2019 |
 
 Paper PDFs are in `~/projects/eda-lab/docs/papers/`.
+
+## Source file organisation
+
+The ipl source tree is split into layers so the clustering engine can be
+used independently of the placement engines.
+
+| File(s) | Layer | Purpose |
+|---------|-------|---------|
+| `src/metrics.h/.cpp` | Data model | Instance-count and area aggregation per cluster |
+| `src/cluster.h/.cpp` | Data model | Cluster tree node: type, metrics, leaf instances, parent/child links, connection weights |
+| `src/physical_hierarchy.h/.cpp` | Data model | Owns the cluster tree root; holds threshold parameters and id/inst lookup maps |
+| `src/cluster_engine.h/.cpp` | Cluster engine | Traverses dbModule hierarchy, builds PhysicalHierarchy (S1b/S1c) |
+| `src/IntegratedPlacer.h/.cpp` | Orchestrator | Top-level: sequences clustering → macro placement (S2) → analytical placement (S3) |
+| `src/MakeIntegratedPlacer.cpp` | Bootstrap | Registers Tcl/SWIG commands at OpenROAD startup |
 
 ## Commands
 
@@ -37,20 +52,27 @@ hello_ipl
 ```
 src/ipl/
 ├── CMakeLists.txt
+├── BUILD
 ├── README.md                        # this file
-├── doc/                             # implementation briefs (one per stage)
+├── FLOW.md                          # algorithmic / data-flow diagrams
+├── docs/briefs/                     # implementation briefs (one per stage)
 ├── include/ipl/
 │   ├── IntegratedPlacer.h           # public API class
 │   └── MakeIntegratedPlacer.h       # Tcl bootstrap entry point
 ├── src/
-│   ├── IntegratedPlacer.cpp         # core placer implementation
-│   ├── MakeIntegratedPlacer.cpp     # Tcl/SWIG registration
+│   ├── metrics.h / metrics.cpp      # S1a: Metrics data class
+│   ├── cluster.h / cluster.cpp      # S1a: Cluster tree node
+│   ├── physical_hierarchy.h / .cpp  # S1a: tree owner + thresholds
+│   ├── IntegratedPlacer.cpp         # S0: top-level orchestrator
+│   ├── MakeIntegratedPlacer.cpp     # S0: Tcl/SWIG registration
 │   ├── ipl.i                        # SWIG interface → Tcl commands
 │   └── ipl.tcl                      # Tcl command wrappers
 └── test/
     ├── CMakeLists.txt
-    ├── hello_ipl.tcl                # smoke test
-    └── hello_ipl.ok                 # expected output
+    ├── BUILD
+    ├── hello_ipl.tcl / .ok          # S0: smoke test
+    ├── cluster_model_test.tcl / .ok # S1a: compile smoke test
+    └── ipl_cluster_test.cc          # S1a: GTest unit tests
 ```
 
 ## Building and testing
@@ -60,6 +82,16 @@ src/ipl/
 cmake -B build -DENABLE_TESTS=ON
 cmake --build build -j$(nproc)
 
-# Run the ipl smoke test
-ctest --test-dir build -R hello_ipl --output-on-failure
+# Run the ipl tests
+ctest --test-dir build -R "ipl|hello_ipl|cluster_model_test" --output-on-failure
 ```
+
+Under Bazel:
+
+```bash
+bazel build //:openroad
+bazel test //src/ipl/test:ipl_cluster_test
+bazel test //src/ipl/test:cluster_model_test-tcl_test
+```
+
+See FLOW.md for data-flow and algorithmic diagrams.

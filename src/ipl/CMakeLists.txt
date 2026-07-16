@@ -8,11 +8,15 @@ include("openroad")
 # standalone C++ unit tests without pulling in the full OpenROAD GUI stack.
 add_library(ipl_lib
   src/IntegratedPlacer.cpp
+  src/metrics.cpp
+  src/cluster.cpp
+  src/physical_hierarchy.cpp
 )
 
 target_include_directories(ipl_lib
   PUBLIC
     include
+    src
 )
 
 target_link_libraries(ipl_lib

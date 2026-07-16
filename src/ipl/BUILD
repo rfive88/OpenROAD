@@ -17,12 +17,20 @@ cc_library(
     name = "ipl",
     srcs = [
         "src/IntegratedPlacer.cpp",
+        "src/cluster.cpp",
+        "src/metrics.cpp",
+        "src/physical_hierarchy.cpp",
     ],
     hdrs = [
         "include/ipl/IntegratedPlacer.h",
+        "src/cluster.h",
+        "src/metrics.h",
+        "src/physical_hierarchy.h",
     ],
     includes = [
         "include",
+        # so cluster.h can include "metrics.h" without a path prefix
+        "src",
     ],
     deps = [
         "//src/odb/src/db",
