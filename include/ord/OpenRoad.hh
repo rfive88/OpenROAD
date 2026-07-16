@@ -70,6 +70,10 @@ namespace exa {
 class Example;
 }
 
+namespace ipl {
+class IntegratedPlacer;
+}
+
 namespace mpl {
 class MacroPlacer;
 }
@@ -168,6 +172,7 @@ class OpenRoad
   fin::Finale* getFinale() { return finale_; }
   ram::RamGen* getRamGen() { return ram_gen_; }
   tap::Tapcell* getTapcell() { return tapcell_; }
+  ipl::IntegratedPlacer* getIntegratedPlacer() { return integrated_placer_; }
   mpl::MacroPlacer* getMacroPlacer() { return macro_placer_; }
   exa::Example* getExample() { return example_; }
   rcx::Ext* getOpenRCX() { return extractor_; }
@@ -273,6 +278,7 @@ class OpenRoad
   dpl::Opendp* opendp_ = nullptr;
   fin::Finale* finale_ = nullptr;
   ram::RamGen* ram_gen_ = nullptr;
+  ipl::IntegratedPlacer* integrated_placer_ = nullptr;
   mpl::MacroPlacer* macro_placer_ = nullptr;
   exa::Example* example_ = nullptr;
   grt::GlobalRouter* global_router_ = nullptr;

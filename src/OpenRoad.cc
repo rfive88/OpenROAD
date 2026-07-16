@@ -43,6 +43,8 @@
 #include "est/MakeEstimateParasitics.h"
 #include "exa/MakeExample.h"
 #include "exa/example.h"
+#include "ipl/IntegratedPlacer.h"
+#include "ipl/MakeIntegratedPlacer.h"
 #include "fin/Finale.h"
 #include "fin/MakeFinale.h"
 #include "gpl/MakeReplace.h"
@@ -134,6 +136,7 @@ OpenRoad::~OpenRoad()
   delete clock_gating_;
   delete tritonCts_;
   delete tapcell_;
+  delete integrated_placer_;
   delete macro_placer_;
   delete example_;
   delete extractor_;
@@ -252,6 +255,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp,
                                   estimate_parasitics_);
   tapcell_ = new tap::Tapcell(db_, logger_);
   partitionMgr_ = new par::PartitionMgr(db_, getDbNetwork(), sta_, logger_);
+  integrated_placer_ = new ipl::IntegratedPlacer(db_, logger_);
   macro_placer_ = new mpl::MacroPlacer(db_, sta_, logger_, partitionMgr_);
   extractor_ = new rcx::Ext(db_, logger_, getVersion());
   distributer_ = new dst::Distributed(logger_);
@@ -299,6 +303,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp,
   grt::initTcl(tcl_interp);
   cts::initTritonCts(tcl_interp);
   tap::initTapcell(tcl_interp);
+  ipl::initIntegratedPlacer(tcl_interp);
   mpl::initMacroPlacer(tcl_interp);
   exa::initExample(tcl_interp);
   rcx::initOpenRCX(tcl_interp);

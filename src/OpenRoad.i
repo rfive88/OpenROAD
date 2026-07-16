@@ -13,6 +13,7 @@
 #include "utl/Logger.h"
 #include "ord/OpenRoad.hh"
 #include "odb/util.h"
+#include "ipl/IntegratedPlacer.h"
 
 #include <thread>
 #include <vector>
@@ -117,6 +118,13 @@ getTritonCts()
 {
   OpenRoad *openroad = getOpenRoad();
   return openroad->getTritonCts();
+}
+
+ipl::IntegratedPlacer *
+getIntegratedPlacer()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getIntegratedPlacer();
 }
 
 mpl::MacroPlacer *
