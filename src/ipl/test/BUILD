@@ -38,7 +38,9 @@ cc_test(
     srcs = ["ipl_cluster_test.cc"],
     deps = [
         "//src/ipl",
+        "//src/utl",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
+        "@spdlog",
     ],
 )

@@ -16,6 +16,7 @@ target_link_libraries(ipl_cluster_test
     GTest::gtest
     GTest::gtest_main
     ipl_lib
+    utl_lib
 )
 
 gtest_discover_tests(ipl_cluster_test

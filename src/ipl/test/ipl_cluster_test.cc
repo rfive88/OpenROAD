@@ -7,6 +7,7 @@
 // logic, so these tests exercise it standalone: no dbDatabase, no logger.
 
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -14,6 +15,8 @@
 #include "gtest/gtest.h"
 #include "metrics.h"
 #include "physical_hierarchy.h"
+#include "spdlog/sinks/ostream_sink.h"
+#include "utl/Logger.h"
 
 namespace ipl {
 namespace {
@@ -155,34 +158,62 @@ TEST(ClusterTest, PhysicalCoordsDefaultToZero)
   EXPECT_EQ(cluster.getHeight(), 400);
 }
 
-// printTree falls back to std::cout when no logger is attached, which is what
-// keeps it observable from these logger-free unit tests.  Pin both the line
-// format and the two-space-per-level indentation.
-TEST(ClusterTest, PrintTreeFallsBackToStdoutWithoutLogger)
+// Builds root -> child -> grandchild, one cluster per type, so printTree has
+// both a type spread and two levels of nesting to render.
+std::unique_ptr<Cluster> makeThreeLevelTree(utl::Logger* logger)
 {
-  Cluster root(0, "root", nullptr);
-  root.setType(MixedCluster);
-  root.setMetrics(Metrics(150, 5, 15000, 100000));
+  auto root = std::make_unique<Cluster>(0, "root", logger);
+  root->setType(MixedCluster);
+  root->setMetrics(Metrics(150, 5, 15000, 100000));
 
-  auto child = std::make_unique<Cluster>(1, "child", nullptr);
+  auto child = std::make_unique<Cluster>(1, "child", logger);
   child->setType(HardMacroCluster);
   child->setMetrics(Metrics(0, 5, 0, 100000));
 
-  auto grandchild = std::make_unique<Cluster>(2, "grandchild", nullptr);
+  auto grandchild = std::make_unique<Cluster>(2, "grandchild", logger);
   grandchild->setType(StdCellCluster);
   grandchild->setMetrics(Metrics(150, 0, 15000, 0));
 
   child->addChild(std::move(grandchild));
-  root.addChild(std::move(child));
+  root->addChild(std::move(child));
+  return root;
+}
+
+constexpr const char* kExpectedTree
+    = "[Mixed] root  (macros=5 cells=150)\n"
+      "  [HardMacro] child  (macros=5 cells=0)\n"
+      "    [StdCell] grandchild  (macros=0 cells=150)\n";
+
+// The production path: with a logger attached, printTree reports through it.
+// An spdlog ostream sink collects the output, the same mechanism web_serve.cpp
+// uses to tap the logger.  utl::Logger formats with pattern "%v", so what the
+// sink sees is exactly the reported line.
+TEST(ClusterTest, PrintTreeReportsThroughLoggerWhenAttached)
+{
+  std::ostringstream captured;
+  utl::Logger logger;
+  auto sink = std::make_shared<spdlog::sinks::ostream_sink_mt>(captured);
+  logger.addSink(sink);
+
+  std::unique_ptr<Cluster> root = makeThreeLevelTree(&logger);
+  root->printTree();
+  logger.removeSink(sink);
+
+  EXPECT_EQ(captured.str(), kExpectedTree);
+}
+
+// The fallback path: with no logger, printTree still emits on std::cout, which
+// is what keeps it observable from logger-free unit tests.  Both paths must
+// render identically.
+TEST(ClusterTest, PrintTreeFallsBackToStdoutWithoutLogger)
+{
+  std::unique_ptr<Cluster> root = makeThreeLevelTree(nullptr);
 
   testing::internal::CaptureStdout();
-  root.printTree();
+  root->printTree();
   const std::string output = testing::internal::GetCapturedStdout();
 
-  EXPECT_EQ(output,
-            "[Mixed] root  (macros=5 cells=150)\n"
-            "  [HardMacro] child  (macros=5 cells=0)\n"
-            "    [StdCell] grandchild  (macros=0 cells=150)\n");
+  EXPECT_EQ(output, kExpectedTree);
 }
 
 TEST(PhysicalHierarchyTest, PrintTreeToleratesNullRoot)
