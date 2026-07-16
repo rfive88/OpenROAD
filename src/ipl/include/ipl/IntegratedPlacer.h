@@ -44,8 +44,8 @@ class IntegratedPlacer
   void helloIpl();
 
  private:
-  odb::dbDatabase* db_ = nullptr;   // OpenDB design database (not owned)
-  utl::Logger* logger_ = nullptr;   // shared logger (not owned)
+  odb::dbDatabase* db_ = nullptr;  // OpenDB design database (not owned)
+  utl::Logger* logger_ = nullptr;  // shared logger (not owned)
 };
 
 }  // namespace ipl
