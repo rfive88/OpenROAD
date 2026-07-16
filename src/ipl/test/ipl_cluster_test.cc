@@ -7,6 +7,7 @@
 // logic, so these tests exercise it standalone: no dbDatabase, no logger.
 
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "cluster.h"
@@ -152,6 +153,46 @@ TEST(ClusterTest, PhysicalCoordsDefaultToZero)
   EXPECT_EQ(cluster.getY(), 200);
   EXPECT_EQ(cluster.getWidth(), 300);
   EXPECT_EQ(cluster.getHeight(), 400);
+}
+
+// printTree falls back to std::cout when no logger is attached, which is what
+// keeps it observable from these logger-free unit tests.  Pin both the line
+// format and the two-space-per-level indentation.
+TEST(ClusterTest, PrintTreeFallsBackToStdoutWithoutLogger)
+{
+  Cluster root(0, "root", nullptr);
+  root.setType(MixedCluster);
+  root.setMetrics(Metrics(150, 5, 15000, 100000));
+
+  auto child = std::make_unique<Cluster>(1, "child", nullptr);
+  child->setType(HardMacroCluster);
+  child->setMetrics(Metrics(0, 5, 0, 100000));
+
+  auto grandchild = std::make_unique<Cluster>(2, "grandchild", nullptr);
+  grandchild->setType(StdCellCluster);
+  grandchild->setMetrics(Metrics(150, 0, 15000, 0));
+
+  child->addChild(std::move(grandchild));
+  root.addChild(std::move(child));
+
+  testing::internal::CaptureStdout();
+  root.printTree();
+  const std::string output = testing::internal::GetCapturedStdout();
+
+  EXPECT_EQ(output,
+            "[Mixed] root  (macros=5 cells=150)\n"
+            "  [HardMacro] child  (macros=5 cells=0)\n"
+            "    [StdCell] grandchild  (macros=0 cells=150)\n");
+}
+
+TEST(PhysicalHierarchyTest, PrintTreeToleratesNullRoot)
+{
+  PhysicalHierarchy hierarchy;
+  ASSERT_EQ(hierarchy.root, nullptr);
+
+  testing::internal::CaptureStdout();
+  hierarchy.printTree();
+  EXPECT_EQ(testing::internal::GetCapturedStdout(), "");
 }
 
 TEST(PhysicalHierarchyTest, TreeOwnershipAndLookup)
